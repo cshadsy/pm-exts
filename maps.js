@@ -28,10 +28,10 @@
     }
   }
 
-  class MapsExtension {
+  class conimaps {
     getInfo() {
       return {
-        id: 'mapsExtension',
+        id: 'conimaps',
         name: 'Maps',
         color1: '#d4a017',
         color2: '#b48c0f',
@@ -156,5 +156,5 @@
     }
   }
 
-  Scratch.extensions.register(new MapsExtension())
+  Scratch.extensions.register(new conimaps())
 })(Scratch)
