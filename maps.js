@@ -157,4 +157,4 @@
   }
 
   Scratch.extensions.register(new conimaps())
-})(Scratch)
+})(Scratch);
