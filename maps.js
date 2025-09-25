@@ -1,34 +1,56 @@
 (function (Scratch) {
   'use strict'
+  if (!Scratch.extensions.unsandboxed) throw new Error('Unsandboxed required')
 
-  if (!Scratch.extensions.unsandboxed) throw new Error('heyy bucko, this needa be unsandbocks')
+  const ALL_MAPS = new Set()
 
-  const MAPS = new Map()
-  let nextId = 1
+  class MapType {
+    constructor(initial = []) {
+      this.map = new Map(initial)
+      ALL_MAPS.add(this)
+    }
+
+    toString() {
+      return '[Map ' + (this.map?.size || 0) + ']'
+    }
+
+    toReporterContent() {
+      const span = document.createElement('span')
+      span.style.color = '#d4a017'
+      span.innerText = 'Map(' + (this.map?.size || 0) + ')'
+      return span
+    }
+
+    destroy() {
+      this.map?.clear()
+      this.map = null
+      ALL_MAPS.delete(this)
+    }
+  }
 
   class MapsExtension {
     getInfo() {
       return {
-        id: 'conimaps',
+        id: 'mapsExtension',
         name: 'Maps',
-        color1: '#D4A017',
-        color2: '#B48C0F',
+        color1: '#d4a017',
+        color2: '#b48c0f',
         blocks: [
           {
             opcode: 'createMap',
             blockType: Scratch.BlockType.REPORTER,
             blockShape: Scratch.BlockShape.SCRAPPED,
-            disableMonitor: true,
-            text: 'new map'
+            text: 'new map',
+            disableMonitor: true
           },
           {
             opcode: 'setInMap',
             blockType: Scratch.BlockType.COMMAND,
             text: 'map [MAP] set key [KEY] to [VALUE]',
             arguments: {
-              MAP: { type: 'map', shape: Scratch.BlockShape.SCRAPPED },
-              KEY: { type: Scratch.ArgumentType.STRING, defaultValue: 'foo' },
-              VALUE: { type: Scratch.ArgumentType.STRING, defaultValue: 'bar' }
+              MAP: { exemptFromNormalization: true, shape: Scratch.BlockShape.SCRAPPED },
+              KEY: { type: Scratch.ArgumentType.STRING, defaultValue: 'key' },
+              VALUE: { type: Scratch.ArgumentType.STRING, defaultValue: 'value' }
             }
           },
           {
@@ -36,8 +58,8 @@
             blockType: Scratch.BlockType.REPORTER,
             text: 'map [MAP] get key [KEY]',
             arguments: {
-              MAP: { type: 'map', shape: Scratch.BlockShape.SCRAPPED },
-              KEY: { type: Scratch.ArgumentType.STRING, defaultValue: 'foo' }
+              MAP: { exemptFromNormalization: true, shape: Scratch.BlockShape.SCRAPPED },
+              KEY: { type: Scratch.ArgumentType.STRING, defaultValue: 'key' }
             }
           },
           {
@@ -45,57 +67,41 @@
             blockType: Scratch.BlockType.BOOLEAN,
             text: 'map [MAP] has key [KEY]?',
             arguments: {
-              MAP: { type: 'map', shape: Scratch.BlockShape.SCRAPPED },
-              KEY: { type: Scratch.ArgumentType.STRING, defaultValue: 'foo' }
+              MAP: { exemptFromNormalization: true, shape: Scratch.BlockShape.SCRAPPED },
+              KEY: { type: Scratch.ArgumentType.STRING, defaultValue: 'key' }
             }
           },
           {
             opcode: 'deleteFromMap',
             blockType: Scratch.BlockType.COMMAND,
-            text: 'map [MAP] delete key [KEY]',
+            text: 'delete key [KEY] from map [MAP]',
             arguments: {
-              MAP: { type: 'map', shape: Scratch.BlockShape.SCRAPPED },
-              KEY: { type: Scratch.ArgumentType.STRING, defaultValue: 'foo' }
+              MAP: { exemptFromNormalization: true, shape: Scratch.BlockShape.SCRAPPED },
+              KEY: { type: Scratch.ArgumentType.STRING, defaultValue: 'key' }
             }
           },
           {
-            opcode: 'sizeOfMap',
+            opcode: 'deleteMap',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'delete map [MAP]',
+            arguments: {
+              MAP: { exemptFromNormalization: true, shape: Scratch.BlockShape.SCRAPPED }
+            }
+          },
+          {
+            opcode: 'mapSize',
             blockType: Scratch.BlockType.REPORTER,
             text: 'size of map [MAP]',
             arguments: {
-              MAP: { type: 'map', shape: Scratch.BlockShape.SCRAPPED }
+              MAP: { exemptFromNormalization: true, shape: Scratch.BlockShape.SCRAPPED }
             }
           },
           {
-            opcode: 'mapToString',
+            opcode: 'mapAsString',
             blockType: Scratch.BlockType.REPORTER,
-            text: 'map [MAP] as string',
+            text: 'get map [MAP] as string',
             arguments: {
-              MAP: { type: 'map', shape: Scratch.BlockShape.SCRAPPED }
-            }
-          },
-          {
-            opcode: 'keysOfMap',
-            blockType: Scratch.BlockType.REPORTER,
-            text: 'keys of map [MAP]',
-            arguments: {
-              MAP: { type: 'map', shape: Scratch.BlockShape.SCRAPPED }
-            }
-          },
-          {
-            opcode: 'valuesOfMap',
-            blockType: Scratch.BlockType.REPORTER,
-            text: 'values of map [MAP]',
-            arguments: {
-              MAP: { type: 'map', shape: Scratch.BlockShape.SCRAPPED }
-            }
-          },
-          {
-            opcode: 'entriesOfMap',
-            blockType: Scratch.BlockType.REPORTER,
-            text: 'entries of map [MAP]',
-            arguments: {
-              MAP: { type: 'map', shape: Scratch.BlockShape.SCRAPPED }
+              MAP: { exemptFromNormalization: true, shape: Scratch.BlockShape.SCRAPPED }
             }
           }
         ]
@@ -103,54 +109,50 @@
     }
 
     createMap() {
-      const id = 'map' + nextId++
-      MAPS.set(id, new Map())
-      return id
+      return new MapType()
     }
 
-    setInMap({MAP, KEY, VALUE}) {
-      const m = MAPS.get(MAP)
-      if (m) m.set(KEY, VALUE)
+    setInMap({ MAP, KEY, VALUE }) {
+      if (MAP instanceof MapType && MAP.map) {
+        MAP.map.set(KEY, VALUE)
+      }
     }
 
-    getFromMap({MAP, KEY}) {
-      const m = MAPS.get(MAP)
-      return m ? m.get(KEY) ?? '' : ''
+    getFromMap({ MAP, KEY }) {
+      if (MAP instanceof MapType && MAP.map) {
+        return MAP.map.get(KEY) ?? ''
+      }
+      return ''
     }
 
-    hasInMap({MAP, KEY}) {
-      const m = MAPS.get(MAP)
-      return m ? m.has(KEY) : false
+    hasInMap({ MAP, KEY }) {
+      return MAP instanceof MapType && MAP.map ? MAP.map.has(KEY) : false
     }
 
-    deleteFromMap({MAP, KEY}) {
-      const m = MAPS.get(MAP)
-      if (m) m.delete(KEY)
+    deleteFromMap({ MAP, KEY }) {
+      if (MAP instanceof MapType && MAP.map) {
+        MAP.map.delete(KEY)
+      }
     }
 
-    sizeOfMap({MAP}) {
-      const m = MAPS.get(MAP)
-      return m ? m.size : 0
+    deleteMap({ MAP }) {
+      if (MAP instanceof MapType) {
+        MAP.destroy()
+      }
     }
 
-    mapToString({MAP}) {
-      const m = MAPS.get(MAP)
-      return m ? JSON.stringify(Object.fromEntries(m)) : ''
+    mapSize({ MAP }) {
+      if (MAP instanceof MapType && MAP.map) {
+        return MAP.map.size
+      }
+      return 0
     }
 
-    keysOfMap({MAP}) {
-      const m = MAPS.get(MAP)
-      return m ? Array.from(m.keys()) : []
-    }
-
-    valuesOfMap({MAP}) {
-      const m = MAPS.get(MAP)
-      return m ? Array.from(m.values()) : []
-    }
-
-    entriesOfMap({MAP}) {
-      const m = MAPS.get(MAP)
-      return m ? Array.from(m.entries()) : []
+    mapAsString({ MAP }) {
+      if (MAP instanceof MapType && MAP.map) {
+        return JSON.stringify(Object.fromEntries(MAP.map))
+      }
+      return '{}'
     }
   }
 
