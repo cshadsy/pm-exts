@@ -120,8 +120,9 @@
         }
 
         ensureBigInt(val) {
-            return val instanceof BigIntType ? val : new BigIntType(val ?? 0n);
+            return val instanceof BigIntType ? val : new BigIntType(val !== undefined && val !== null ? val : 0n);
         }
+
 
         add({ A, B }) { return new BigIntType(BigInt(A) + BigInt(B)); }
         sub({ A, B }) { return new BigIntType(BigInt(A) - BigInt(B)); }
