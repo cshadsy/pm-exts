@@ -12,7 +12,8 @@ class AlgebraExtension {
     return {
       id: 'conzyAlgebra',
       name: 'Algebra',
-      color1: '#ff4d4d',
+      blockIconURI: 'data:image/svg+xml,%3Csvg%20version%3D%221.1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20width%3D%2269.4974%22%20height%3D%2297.76762%22%20viewBox%3D%220%2C0%2C69.4974%2C97.76762%22%3E%3Cg%20transform%3D%22translate(-208.79941%2C-119.61488)%22%3E%3Cg%20fill%3D%22%23ffffff%22%20stroke%3D%22none%22%20stroke-miterlimit%3D%2210%22%20font-family%3D%22Serif%22%20font-weight%3D%22400%22%20font-size%3D%2240%22%3E%3Ctext%20transform%3D%22translate(216.0948%2C193.959)%20scale(1.96088%2C2.03683)%20skewX(-15.6444)%22%20font-size%3D%2240%22%20xml%3Aspace%3D%22preserve%22%20fill%3D%22%23ffffff%22%3E%3Ctspan%20x%3D%220%22%20dy%3D%220%22%3Ex%3C%2Ftspan%3E%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E%3C!--rotationCenter%3A31.200591944478674%3A60.385124146098846--%3E',
+      color1: '#4d85ffff',
       blocks: [
         {
           opcode: 'setVar',
@@ -74,6 +75,30 @@ class AlgebraExtension {
             VAL: { type: Scratch.ArgumentType.STRING, defaultValue: '3' },
             EXPR: { type: Scratch.ArgumentType.STRING, defaultValue: '2*x+5' }
           }
+        },
+        {
+          opcode: 'isSimplified',
+          blockType: Scratch.BlockType.BOOLEAN,
+          text: 'is [EXPR] simplified?',
+          arguments: {
+            EXPR: { type: Scratch.ArgumentType.STRING, defaultValue: 'x^2 + 2*x + 1' }
+          }
+        },
+        {
+          opcode: 'isExpanded',
+          blockType: Scratch.BlockType.BOOLEAN,
+          text: 'is [EXPR] expanded?',
+          arguments: {
+            EXPR: { type: Scratch.ArgumentType.STRING, defaultValue: '(x+1)^2' }
+          }
+        },
+        {
+          opcode: 'isConstant',
+          blockType: Scratch.BlockType.BOOLEAN,
+          text: 'is [EXPR] constant?',
+          arguments: {
+            EXPR: { type: Scratch.ArgumentType.STRING, defaultValue: '5' }
+          }
         }
       ]
     };
@@ -90,7 +115,7 @@ class AlgebraExtension {
     for (const [key, val] of Object.entries(algebraVars)) {
       expr = expr.replace(new RegExp(`\\b${key}\\b`, 'g'), `(${val})`);
     }
-    expr = expr.replace(/(\d)([a-zA-Z])/g, '$1*$2'); // 2x -> 2*x
+    expr = expr.replace(/(\d)([a-zA-Z])/g, '$1*$2');
     try {
       return nerdamer(expr).evaluate().toString();
     } catch {
@@ -140,9 +165,60 @@ class AlgebraExtension {
       return "Error";
     }
   }
+
+  isFactorable(args) {
+  try {
+    let expr = String(args.EXPR);
+    for (const [key, val] of Object.entries(algebraVars)) {
+      expr = expr.replace(new RegExp(`\\b${key}\\b`, 'g'), `(${val})`);
+    }
+    const factored = nerdamer(expr).factor().expand().toString();
+    const originalExpanded = nerdamer(expr).expand().toString();
+    return factored !== originalExpanded;
+  } catch {
+    return false;
+  }
 }
 
+
+  isSimplified(args) {
+    try {
+      let expr = String(args.EXPR);
+      for (const [key, val] of Object.entries(algebraVars)) {
+        expr = expr.replace(new RegExp(`\\b${key}\\b`, 'g'), `(${val})`);
+      }
+      const simplified = nerdamer(expr).simplify().toString();
+      return simplified === nerdamer(expr).toString();
+    } catch {
+      return false;
+    }
+  }
+
+  isExpanded(args) {
+    try {
+      let expr = String(args.EXPR);
+      for (const [key, val] of Object.entries(algebraVars)) {
+        expr = expr.replace(new RegExp(`\\b${key}\\b`, 'g'), `(${val})`);
+      }
+      const expanded = nerdamer(expr).expand().toString();
+      return expanded === nerdamer(expr).toString();
+    } catch {
+      return false;
+    }
+  }
+
+  isConstant(args) {
+    try {
+      let expr = String(args.EXPR);
+      for (const [key, val] of Object.entries(algebraVars)) {
+        expr = expr.replace(new RegExp(`\\b${key}\\b`, 'g'), `(${val})`);
+      }
+      const variables = nerdamer(expr).variables();
+      return variables.length === 0;
+    } catch {
+      return false;
+    }
+  }
+}
 Scratch.extensions.register(new AlgebraExtension());
-
-
 })(Scratch);
